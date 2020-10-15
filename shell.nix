@@ -48,7 +48,7 @@ let
     cluster = mkCluster customConfig;
     inherit hfcCluster;
   in
-    stdenv.mkDerivation {
+    stdenv.mkDerivation rec {
     name = "devops-shell";
     buildInputs = [
       niv
@@ -63,14 +63,8 @@ let
       hfcCluster.stop
       cardanolib-py
     ];
-    shellHook = ''
-      echo "DevOps Tools" \
-      | ${figlet}/bin/figlet -f banner -c \
-      | ${lolcat}/bin/lolcat
 
-      source <(cardano-cli --bash-completion-script cardano-cli)
-      source <(cardano-node --bash-completion-script cardano-node)
-
+    setupEnvVariables = ''
       # Socket path default to first BFT node launched by "start-cluster":
       export CARDANO_NODE_SOCKET_PATH=$PWD/${cluster.baseEnvConfig.stateDir}/bft1.socket
       # Unless using specific network:
@@ -84,6 +78,17 @@ let
         ''}
 
       ''}
+    '';
+
+    shellHook = ''
+      echo "DevOps Tools" \
+      | ${figlet}/bin/figlet -f banner -c \
+      | ${lolcat}/bin/lolcat
+
+      source <(cardano-cli --bash-completion-script cardano-cli)
+      source <(cardano-node --bash-completion-script cardano-node)
+
+      ${setupEnvVariables}
 
       echo "NOTE: you may need to export GITHUB_TOKEN if you hit rate limits with niv"
       echo "Commands:

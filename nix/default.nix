@@ -1,6 +1,7 @@
 { system ? builtins.currentSystem
 , crossSystem ? null
 , config ? {}
+, customConfig ? {}
 , sourcesOverride ? {}
 , gitrev ? null
 }:
@@ -36,6 +37,11 @@ let
           // import ./util.nix { inherit haskell-nix; }
           # also expose our sources, nixpkgs and overlays
           // { inherit overlays sources nixpkgs; };
+
+        cardanoNodeShell = import ../shell.nix {
+          inherit pkgs sourcesOverride config customConfig;
+          withHoogle = true;
+        };
       })
       # And, of course, our haskell-nix-ified cabal project:
       (import ./pkgs.nix)

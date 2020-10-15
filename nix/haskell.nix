@@ -4,6 +4,7 @@
 { pkgs
 , lib
 , stdenv
+, src
 , haskell-nix
 , buildPackages
 # GHC attribute name
@@ -17,11 +18,6 @@
 , libsodium ? pkgs.libsodium
 }:
 let
-
-  src = haskell-nix.haskellLib.cleanGit {
-      name = "cardano-node-src";
-      src = ../.;
-  };
 
   projectPackages = lib.attrNames (haskell-nix.haskellLib.selectProjectPackages
     (haskell-nix.cabalProject {

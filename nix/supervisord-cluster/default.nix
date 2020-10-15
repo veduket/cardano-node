@@ -145,6 +145,7 @@ let
                                        --genesis-dir ${stateDir}/shelley \
                                        --gen-genesis-keys ${toString numBft} \
                                        --gen-utxo-keys 1
+    chmod og-r -R ${stateDir}/shelley
     jq -r --arg systemStart $(date --utc +"%Y-%m-%dT%H:%M:%SZ" --date="5 seconds") \
            '.systemStart = $systemStart |
             .updateQuorum = ${toString numBft} |
