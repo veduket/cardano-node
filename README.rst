@@ -427,7 +427,6 @@ You can validate Byron era blocks, delegation certificates, txs and update propo
 
 ``cabal exec cardano-cli -- validate-cbor --byron-block 21600 --filepath CBOREncodedByronBlockFile``
 
-
 Native Token Pre-Production Environment
 =======================================
 
