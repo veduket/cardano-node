@@ -61,7 +61,7 @@ let
         addr = "127.0.0.1";
         port = p;
         valency = 1;
-      }) (lib.filter (p: p != selfPort) (lib.genList (i: basePort + i + 1) (composition.numBft + composition.numPools)));
+      }) (lib.filter (p: p != selfPort) (lib.genList (i: basePort + i + 1) (composition.n_bft_hosts + composition.n_pools)));
   };
   supervisorConfig = pkgs.writeText "supervisor.conf" (pkgs.commonLib.supervisord.writeSupervisorConfig ({
     supervisord = {
@@ -93,7 +93,7 @@ let
       stdout_logfile = "${stateDir}/bft${toString i}.stdout";
       stderr_logfile = "${stateDir}/bft${toString i}.stderr";
     }
-  ) (lib.genList (i: i + 1) composition.numBft))
+  ) (lib.genList (i: i + 1) composition.n_bft_hosts))
   // lib.listToAttrs (map (i:
     lib.nameValuePair "program:pool${toString i}" {
       command = let
@@ -104,7 +104,7 @@ let
           topology = __toFile "topology.yaml" (__toJSON (topologyFile port));
           socketPath = "${stateDir}/pool${toString i}.socket";
           dbPrefix = "db-pool${toString i}";
-          port = basePort + composition.numBft + i;
+          port = basePort + composition.n_bft_hosts + i;
           nodeConfigFile = "${stateDir}/config.json";
         };
         script = mkStartScript envConfig;
@@ -112,7 +112,7 @@ let
       stdout_logfile = "${stateDir}/pool${toString i}.stdout";
       stderr_logfile = "${stateDir}/pool${toString i}.stderr";
     }
-  ) (lib.genList (i: i + 1) composition.numPools))
+  ) (lib.genList (i: i + 1) composition.n_pools))
   // {
     "program:webserver" = {
       command = "${pkgs.python3}/bin/python -m http.server ${toString basePort}";
@@ -134,7 +134,7 @@ let
     echo "Transfering genesis funds to pool owners, register pools and delegations"
     cardano-cli transaction submit --shelley-mode \
       --tx-file ${stateDir}/shelley/transfer-register-delegate-tx.tx \
-      --testnet-magic ${toString genesis.params.networkMagic}
+      --testnet-magic ${toString genesis.params.network_magic}
     sleep 5
     echo 'Cluster started. Run `stop-cluster` to stop'
   '';
