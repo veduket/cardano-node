@@ -111,8 +111,8 @@ runQueryCmd cmd =
       runQueryProtocolParameters era consensusModeParams network mOutFile
     QueryTip protocol network mOutFile ->
       runQueryTip protocol network mOutFile
-    QueryStakeDistribution era protocol network mOutFile ->
-      runQueryStakeDistribution era protocol network mOutFile
+    QueryStakeDistribution era consensusModeParams network mOutFile ->
+      runQueryStakeDistribution era consensusModeParams network mOutFile
     QueryStakeAddressInfo era protocol addr network mOutFile ->
       runQueryStakeAddressInfo era protocol addr network mOutFile
     QueryLedgerState era protocol network mOutFile ->
@@ -391,38 +391,51 @@ printFilteredUTxOs era (Ledger.UTxO utxo) = do
 
 runQueryStakeDistribution
   :: AnyCardanoEra
-  -> Protocol
+  -> AnyConsensusModeParams
   -> NetworkId
   -> Maybe OutputFile
   -> ExceptT ShelleyQueryCmdError IO ()
-runQueryStakeDistribution (AnyCardanoEra era) protocol network mOutFile
-  | ShelleyBasedEra era' <- cardanoEraStyle era =
+runQueryStakeDistribution anyEra@(AnyCardanoEra era) anyCmodeParams@(AnyConsensusModeParams cModeParams) network _mOutFile
+  | ShelleyBasedEra era' <- cardanoEraStyle era = do
+      SocketPath sockPath <- firstExceptT ShelleyQueryCmdEnvVarSocketErr readEnvSocketPath
+      eraInMode <- hoistMaybe (ShelleyQueryCmdEraConsensusModeMismatch anyEra anyCmodeParams) $ toEraInMode cModeParams era
+      let localNodeConnInfo = NewIPC.LocalNodeConnectInfo
+                              { NewIPC.localConsensusModeParams = cModeParams
+                              , NewIPC.localNodeNetworkId = network
+                              , NewIPC.localNodeSocketPath = sockPath
+                              }
+          qInMode = NewIPC.QueryInEra eraInMode (NewIPC.QueryInShelleyBasedEra era' NewIPC.QueryStakeDistribution)
+      tip <- liftIO $ NewIPC.getLocalChainTip localNodeConnInfo
+      res <- liftIO $ NewIPC.queryNodeLocalState localNodeConnInfo (Just tip) qInMode
+      case res of
+        Left acqFailure -> left $ ShelleyQueryCmdAcquireFailure acqFailure
+        Right eStakeDist ->
+          case eStakeDist of
+            Left err -> left . ShelleyQueryCmdLocalStateQueryError $ EraMismatchError err
+            Right (NewIPC.StakeDistribution _stakeDist) -> panic "TODO" -- writeStakeDistribution era' mOutFile stakeDist
 
-    -- Obtain the required type equality constaints
-    obtainStandardCrypto era' $ do
-
-    SocketPath sockPath <- firstExceptT ShelleyQueryCmdEnvVarSocketErr readEnvSocketPath
-    stakeDist <- firstExceptT ShelleyQueryCmdLocalStateQueryError $
-        withlocalNodeConnectInfo protocol network sockPath $
-          queryStakeDistributionFromLocalState era'
-    writeStakeDistribution mOutFile stakeDist
 
   | otherwise = throwError (ShelleyQueryCmdLocalStateQueryError
                               ByronProtocolNotSupportedError)
 
-
-writeStakeDistribution :: Maybe OutputFile
-                       -> PoolDistr StandardCrypto
-                       -> ExceptT ShelleyQueryCmdError IO ()
-writeStakeDistribution (Just (OutputFile outFile)) (PoolDistr stakeDist) =
+{-
+_writeStakeDistribution
+  :: forall era ledgerera. ShelleyLedgerEra era ~ ledgerera
+  => Ledger.Crypto ledgerera ~ StandardCrypto
+  => ShelleyBasedEra era
+  -> Maybe OutputFile
+  -> PoolDistr StandardCrypto
+  -> ExceptT ShelleyQueryCmdError IO ()
+_writeStakeDistribution _ (Just (OutputFile outFile)) (PoolDistr stakeDist) =
     handleIOExceptT (ShelleyQueryCmdWriteFileError . FileIOError outFile) $
       LBS.writeFile outFile (encodePretty stakeDist)
 
-writeStakeDistribution Nothing stakeDist =
+_writeStakeDistribution _ Nothing stakeDist =
    liftIO $ printStakeDistribution stakeDist
+-}
 
-printStakeDistribution :: PoolDistr StandardCrypto -> IO ()
-printStakeDistribution (PoolDistr stakeDist) = do
+_printStakeDistribution :: PoolDistr StandardCrypto -> IO ()
+_printStakeDistribution (PoolDistr stakeDist) = do
     Text.putStrLn title
     putStrLn $ replicate (Text.length title + 2) '-'
     sequence_
@@ -532,51 +545,6 @@ instance ToJSON DelegationsAndRewards where
                     . StakeAddress (toShelleyNetwork nw)
                     . toShelleyStakeCredential
                     . fromShelleyStakeCredential
-
--- | Query the current stake distribution from a Shelley node via the local
--- state query protocol.
---
--- This one is Shelley-specific because the query is Shelley-specific.
---
-queryStakeDistributionFromLocalState
-  :: forall era ledgerera mode block.
-     ShelleyLedgerEra era ~ ledgerera
-  => Ledger.Crypto ledgerera ~ StandardCrypto
-  => ShelleyBasedEra era
-  -> LocalNodeConnectInfo mode block
-  -> ExceptT ShelleyQueryCmdLocalStateQueryError IO (PoolDistr StandardCrypto)
-queryStakeDistributionFromLocalState _ LocalNodeConnectInfo{
-                                         localNodeConsensusMode = ByronMode{}
-                                       } =
-  throwError ByronProtocolNotSupportedError
-
-queryStakeDistributionFromLocalState era connectInfo@LocalNodeConnectInfo{
-                                           localNodeConsensusMode = ShelleyMode{}
-                                         }
-  | ShelleyBasedEraShelley <- era = do
-    tip <- liftIO $ getLocalTip connectInfo
-    Consensus.DegenQueryResult result <-
-      firstExceptT AcquireFailureError . newExceptT $
-        queryNodeLocalState
-          connectInfo
-          ( getTipPoint tip
-          , Consensus.DegenQuery Consensus.GetStakeDistribution
-          )
-    return result
-
-  | otherwise = throwError ShelleyProtocolEraMismatch
-
-queryStakeDistributionFromLocalState era connectInfo@LocalNodeConnectInfo{
-                                           localNodeConsensusMode = CardanoMode{}
-                                         } = do
-  tip <- liftIO $ getLocalTip connectInfo
-  result <- firstExceptT AcquireFailureError . newExceptT $
-    queryNodeLocalState
-      connectInfo
-      (getTipPoint tip, queryIfCurrentEra era Consensus.GetStakeDistribution)
-  case result of
-    QueryResultEraMismatch err -> throwError (EraMismatchError err)
-    QueryResultSuccess stakeDist -> return stakeDist
 
 queryLocalLedgerState
   :: forall era ledgerera mode block.
