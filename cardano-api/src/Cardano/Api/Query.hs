@@ -16,6 +16,9 @@ module Cardano.Api.Query (
     -- * Internal conversion functions
     toConsensusQuery,
     fromConsensusQueryResult,
+
+    -- TODO: Move
+    StakeDistribution(..),
   ) where
 
 import           Data.Bifunctor (bimap)
@@ -33,12 +36,14 @@ import qualified Ouroboros.Consensus.Byron.Ledger as Consensus
 import qualified Ouroboros.Consensus.Cardano.Block as Consensus
 import qualified Ouroboros.Consensus.Shelley.Ledger as Consensus
 
-import qualified Cardano.Chain.Update.Validation.Interface as Byron.Update
-
-import           Cardano.Api.Block
+import           Cardano.Api.Block (ChainPoint, fromConsensusPoint)
 import           Cardano.Api.Eras
-import           Cardano.Api.Modes
+import           Cardano.Api.Modes (ConsensusBlockForEra, ConsensusBlockForMode,
+                     ConsensusMode (CardanoMode), ConsensusModeIsMultiEra (..), EraInMode (..),
+                     anyEraInModeToAnyEra, fromConsensusEraIndex)
 import           Cardano.Api.ProtocolParameters
+import qualified Cardano.Chain.Update.Validation.Interface as Byron.Update
+import qualified Shelley.Spec.Ledger.Delegation.Certificates as Shelley
 
 
 -- ----------------------------------------------------------------------------
@@ -90,8 +95,8 @@ data QueryInShelleyBasedEra result where
 --     QueryProtocolParametersUpdate
 --       :: QueryInShelleyBasedEra ProtocolParametersUpdate
 
---     QueryStakeDistribution
---       :: QueryInShelleyBasedEra StakeDistribution
+     QueryStakeDistribution
+       :: QueryInShelleyBasedEra StakeDistribution
 
 --     QueryUTxO
 --       :: Maybe (Set AddressAny)
@@ -168,6 +173,9 @@ toConsensusQueryShelleyBased erainmode QueryEpoch =
 
 toConsensusQueryShelleyBased erainmode QueryProtocolParameters =
     Some (consensusQueryInEraInMode erainmode Consensus.GetCurrentPParams)
+
+toConsensusQueryShelleyBased erainmode QueryStakeDistribution =
+    Some (consensusQueryInEraInMode erainmode Consensus.GetStakeDistribution)
 
 
 consensusQueryInEraInMode
@@ -280,6 +288,14 @@ fromConsensusQueryResultShelleyBased QueryProtocolParameters q' pParams =
     case q' of
       Consensus.GetCurrentPParams -> fromShelleyBasedParams pParams
       _                           -> fromConsensusQueryResultMismatch
+
+fromConsensusQueryResultShelleyBased QueryStakeDistribution q' stakeDist =
+    case q' of
+      Consensus.GetStakeDistribution -> StakeDistribution stakeDist
+      _                              -> fromConsensusQueryResultMismatch
+
+data StakeDistribution where
+  StakeDistribution :: Shelley.PoolDistr ledgercrypto -> StakeDistribution
 
 -- | This should /only/ happen if we messed up the mapping in 'toConsensusQuery'
 -- and 'fromConsensusQueryResult' so they are inconsistent with each other.

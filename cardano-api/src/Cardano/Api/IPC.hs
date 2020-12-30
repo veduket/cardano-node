@@ -47,6 +47,9 @@ module Cardano.Api.IPC (
     -- *** Helper functions
     consensusModeOnly,
     getLocalChainTip,
+
+    -- TODO: Move
+    StakeDistribution(..),
   ) where
 
 import qualified Ouroboros.Consensus.HardFork.Combinator as Consensus
