@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -11,6 +12,8 @@
 -- TODO: add protocol parameters in ledger state queries.
 --
 module Cardano.Api.ProtocolParameters (
+    ProtocolParameters(..),
+    fromShelleyBasedParams,
     UpdateProposal(..),
     ProtocolParametersUpdate(..),
     EpochNo,
@@ -29,22 +32,22 @@ module Cardano.Api.ProtocolParameters (
 
 import           Prelude
 
-import           Numeric.Natural
 import           Data.ByteString (ByteString)
-import qualified Data.Map.Strict as Map
+import           Data.Functor.Identity (Identity)
 import           Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
+import           Numeric.Natural
 
 import           Control.Monad
 
-import           Cardano.Slotting.Slot (EpochNo)
 import qualified Cardano.Crypto.Hash.Class as Crypto
+import           Cardano.Slotting.Slot (EpochNo)
 
 import qualified Cardano.Ledger.Era as Ledger
 import           Ouroboros.Consensus.Shelley.Eras (StandardShelley)
 import           Ouroboros.Consensus.Shelley.Protocol.Crypto (StandardCrypto)
 
-import           Shelley.Spec.Ledger.BaseTypes
-                   (maybeToStrictMaybe, strictMaybeToMaybe)
+import           Shelley.Spec.Ledger.BaseTypes (maybeToStrictMaybe, strictMaybeToMaybe)
 import qualified Shelley.Spec.Ledger.BaseTypes as Shelley
 import qualified Shelley.Spec.Ledger.Keys as Shelley
 import qualified Shelley.Spec.Ledger.PParams as Shelley
@@ -60,6 +63,12 @@ import           Cardano.Api.StakePoolMetadata
 import           Cardano.Api.TxMetadata
 import           Cardano.Api.Value
 
+
+data ProtocolParameters where
+   ProtocolParameters :: Shelley.PParams' Identity ledgerera -> ProtocolParameters
+
+fromShelleyBasedParams :: Shelley.PParams' Identity ledgerera -> ProtocolParameters
+fromShelleyBasedParams sParam = ProtocolParameters sParam
 
 -- ----------------------------------------------------------------------------
 -- Protocol updates embedded in transactions

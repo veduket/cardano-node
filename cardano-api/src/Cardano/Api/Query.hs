@@ -18,26 +18,27 @@ module Cardano.Api.Query (
     fromConsensusQueryResult,
   ) where
 
-import           Prelude
 import           Data.Bifunctor (bimap)
 import           Data.SOP.Strict (SListI)
+import           Prelude
 
-import           Ouroboros.Network.Protocol.LocalStateQuery.Client (Some(..))
+import           Ouroboros.Network.Protocol.LocalStateQuery.Client (Some (..))
 
 import qualified Ouroboros.Consensus.HardFork.Combinator as Consensus
-import qualified Ouroboros.Consensus.HardFork.Combinator.Degenerate as Consensus
-import qualified Ouroboros.Consensus.HardFork.Combinator.AcrossEras as Consensus
 import           Ouroboros.Consensus.HardFork.Combinator.AcrossEras (EraMismatch)
+import qualified Ouroboros.Consensus.HardFork.Combinator.AcrossEras as Consensus
+import qualified Ouroboros.Consensus.HardFork.Combinator.Degenerate as Consensus
 
-import qualified Ouroboros.Consensus.Byron.Ledger       as Consensus
-import qualified Ouroboros.Consensus.Shelley.Ledger     as Consensus
-import qualified Ouroboros.Consensus.Cardano.Block      as Consensus
+import qualified Ouroboros.Consensus.Byron.Ledger as Consensus
+import qualified Ouroboros.Consensus.Cardano.Block as Consensus
+import qualified Ouroboros.Consensus.Shelley.Ledger as Consensus
 
 import qualified Cardano.Chain.Update.Validation.Interface as Byron.Update
 
 import           Cardano.Api.Block
 import           Cardano.Api.Eras
 import           Cardano.Api.Modes
+import           Cardano.Api.ProtocolParameters
 
 
 -- ----------------------------------------------------------------------------
@@ -72,7 +73,6 @@ data QueryInEra era result where
 
 deriving instance Show (QueryInEra era result)
 
-
 data QueryInShelleyBasedEra result where
      QueryChainPoint
        :: QueryInShelleyBasedEra ChainPoint
@@ -84,8 +84,8 @@ data QueryInShelleyBasedEra result where
 --     QueryGenesisParameters
 --       :: QueryInShelleyBasedEra GenesisParameters
 
---     QueryProtocolParameters
---       :: QueryInShelleyBasedEra ProtocolParameters
+     QueryProtocolParameters
+       :: QueryInShelleyBasedEra ProtocolParameters
 
 --     QueryProtocolParametersUpdate
 --       :: QueryInShelleyBasedEra ProtocolParametersUpdate
@@ -103,8 +103,8 @@ data QueryInShelleyBasedEra result where
 --                                  Map StakeAddress PoolId)
 
 --     QueryPoolRanking
---       :: 
---       -> QueryInShelleyBasedEra 
+--       ::
+--       -> QueryInShelleyBasedEra
 
 --     QueryLedgerState
 --       :: QueryInShelleyBasedEra LedgerState
@@ -165,6 +165,9 @@ toConsensusQueryShelleyBased erainmode QueryChainPoint =
 
 toConsensusQueryShelleyBased erainmode QueryEpoch =
     Some (consensusQueryInEraInMode erainmode Consensus.GetEpochNo)
+
+toConsensusQueryShelleyBased erainmode QueryProtocolParameters =
+    Some (consensusQueryInEraInMode erainmode Consensus.GetCurrentPParams)
 
 
 consensusQueryInEraInMode
@@ -273,6 +276,10 @@ fromConsensusQueryResultShelleyBased QueryEpoch q' epoch =
       Consensus.GetEpochNo -> epoch
       _                    -> fromConsensusQueryResultMismatch
 
+fromConsensusQueryResultShelleyBased QueryProtocolParameters q' pParams =
+    case q' of
+      Consensus.GetCurrentPParams -> fromShelleyBasedParams pParams
+      _                           -> fromConsensusQueryResultMismatch
 
 -- | This should /only/ happen if we messed up the mapping in 'toConsensusQuery'
 -- and 'fromConsensusQueryResult' so they are inconsistent with each other.

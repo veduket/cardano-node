@@ -26,6 +26,8 @@ library
                         Cardano.Api.Protocol.Cardano
                         Cardano.Api.Protocol.Shelley
                         Cardano.Api.Protocol.Types
+                        Cardano.Api.ProtocolParameters
+                        Cardano.Api.Query
                         Cardano.Api.Shelley
                         Cardano.Api.Shelley.Genesis
                         Cardano.Api.TxInMode
@@ -51,8 +53,6 @@ library
                         Cardano.Api.KeysPraos
                         Cardano.Api.NetworkId
                         Cardano.Api.OperationalCertificate
-                        Cardano.Api.ProtocolParameters
-                        Cardano.Api.Query
                         Cardano.Api.Script
                         Cardano.Api.SerialiseBech32
                         Cardano.Api.SerialiseCBOR
