@@ -1,8 +1,11 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE EmptyCase #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
+
+{-# OPTIONS_GHC -Wno-unticked-promoted-constructors #-}
 
 -- | Queries from local clients to the node.
 --
@@ -22,6 +25,11 @@ module Cardano.Api.Query (
   ) where
 
 import           Data.Bifunctor (bimap)
+import           Data.List (group)
+import           Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
+import           Data.Set (Set)
+import qualified Data.Set as Set
 import           Data.SOP.Strict (SListI)
 import           Prelude
 
@@ -35,13 +43,24 @@ import qualified Ouroboros.Consensus.HardFork.Combinator.Degenerate as Consensus
 import qualified Ouroboros.Consensus.Byron.Ledger as Consensus
 import qualified Ouroboros.Consensus.Cardano.Block as Consensus
 import qualified Ouroboros.Consensus.Shelley.Ledger as Consensus
+import           Ouroboros.Consensus.Shelley.Protocol.Crypto (StandardCrypto)
 
+import qualified Cardano.Ledger.Era as Ledger
+import qualified Shelley.Spec.Ledger.BaseTypes as Ledger
+import qualified Shelley.Spec.Ledger.Credential as Ledger
+import qualified Shelley.Spec.Ledger.Keys as Ledger
+import qualified Shelley.Spec.Ledger.LedgerState as Ledger
+
+import           Cardano.Api.Address
 import           Cardano.Api.Block (ChainPoint, fromConsensusPoint)
+import           Cardano.Api.Certificate
 import           Cardano.Api.Eras
+import           Cardano.Api.KeysShelley
 import           Cardano.Api.Modes (ConsensusBlockForEra, ConsensusBlockForMode,
                      ConsensusMode (CardanoMode), ConsensusModeIsMultiEra (..), EraInMode (..),
                      anyEraInModeToAnyEra, fromConsensusEraIndex)
 import           Cardano.Api.ProtocolParameters
+import           Cardano.Api.Value
 import qualified Cardano.Chain.Update.Validation.Interface as Byron.Update
 import qualified Shelley.Spec.Ledger.Delegation.Certificates as Shelley
 
@@ -102,10 +121,10 @@ data QueryInShelleyBasedEra result where
 --       :: Maybe (Set AddressAny)
 --       -> QueryInShelleyBasedEra UTxO
 
---     QueryStakeAddresses
---       :: Set StakeAddress
---       -> QueryInShelleyBasedEra (Map StakeAddress Lovelace,
---                                  Map StakeAddress PoolId)
+     QueryStakeAddresses
+       :: Set StakeAddress
+       -> QueryInShelleyBasedEra (Map StakeAddress Lovelace,
+                                  Map StakeAddress PoolId)
 
 --     QueryPoolRanking
 --       ::
@@ -162,6 +181,7 @@ toConsensusQueryShelleyBased
      ConsensusBlockForEra era ~ Consensus.ShelleyBlock ledgerera
   => ConsensusBlockForMode mode ~ block
   => block ~ Consensus.HardForkBlock xs
+  => Ledger.Crypto ledgerera ~ StandardCrypto
   => EraInMode era mode
   -> QueryInShelleyBasedEra result
   -> Some (Consensus.Query block)
@@ -176,6 +196,10 @@ toConsensusQueryShelleyBased erainmode QueryProtocolParameters =
 
 toConsensusQueryShelleyBased erainmode QueryStakeDistribution =
     Some (consensusQueryInEraInMode erainmode Consensus.GetStakeDistribution)
+
+toConsensusQueryShelleyBased erainmode (QueryStakeAddresses stakeAddresses) = do
+    let stakeCredentials = Set.map (\(StakeAddress _ cred) -> cred) stakeAddresses
+    Some (consensusQueryInEraInMode erainmode $ Consensus.GetFilteredDelegationsAndRewardAccounts stakeCredentials)
 
 
 consensusQueryInEraInMode
@@ -270,6 +294,7 @@ fromConsensusQueryResult (QueryInEra MaryEraInCardanoMode
 fromConsensusQueryResultShelleyBased
   :: forall ledgerera result result'.
      Consensus.ShelleyBasedEra ledgerera
+  => Ledger.Crypto ledgerera ~ StandardCrypto
   => QueryInShelleyBasedEra result
   -> Consensus.Query (Consensus.ShelleyBlock ledgerera) result'
   -> result'
@@ -294,8 +319,34 @@ fromConsensusQueryResultShelleyBased QueryStakeDistribution q' stakeDist =
       Consensus.GetStakeDistribution -> StakeDistribution stakeDist
       _                              -> fromConsensusQueryResultMismatch
 
+fromConsensusQueryResultShelleyBased (QueryStakeAddresses stakeCreds) q' result  =
+    case q' of
+      Consensus.GetFilteredDelegationsAndRewardAccounts _ -> fromDelegsAndRewards result stakeCreds
+      _                                                   -> fromConsensusQueryResultMismatch
+
 data StakeDistribution where
   StakeDistribution :: Shelley.PoolDistr ledgercrypto -> StakeDistribution
+
+fromDelegsAndRewards
+  :: ( Map (Ledger.Credential Ledger.Staking StandardCrypto) (Ledger.KeyHash Ledger.StakePool StandardCrypto)
+     , Ledger.RewardAccounts StandardCrypto
+     )
+  -> Set StakeAddress
+  -> (Map StakeAddress Lovelace, Map StakeAddress PoolId)
+fromDelegsAndRewards (delegMap, rewardAccts) submitedStakeAddrs =
+  let networkId = getNetworkId submitedStakeAddrs
+      rewardsMap = Map.fromList . map (\(cred, coin) -> (StakeAddress networkId cred, fromShelleyLovelace coin)) $ Map.toList rewardAccts
+      delegationMap = Map.fromList . map (\(cred, poolId) -> (StakeAddress networkId cred, StakePoolKeyHash poolId)) $ Map.toList delegMap
+  in (rewardsMap, delegationMap)
+
+getNetworkId :: Set StakeAddress -> Ledger.Network
+getNetworkId stakeAddrs = do
+  let networkIds = Set.toList $ Set.map (\(StakeAddress nw _) -> nw) stakeAddrs
+  case networkIds of
+    nId:_ -> case length $ group networkIds of
+               1 -> nId
+               _ -> error $ "Multiple network ids in stake addresses:" <> show stakeAddrs
+    [] -> error "No stake address submitted with query"
 
 -- | This should /only/ happen if we messed up the mapping in 'toConsensusQuery'
 -- and 'fromConsensusQueryResult' so they are inconsistent with each other.
