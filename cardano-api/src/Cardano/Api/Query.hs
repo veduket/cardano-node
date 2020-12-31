@@ -33,6 +33,7 @@ import qualified Data.Set as Set
 import           Data.SOP.Strict (SListI)
 import           Prelude
 
+import           Ouroboros.Network.Block (Serialised)
 import           Ouroboros.Network.Protocol.LocalStateQuery.Client (Some (..))
 
 import qualified Ouroboros.Consensus.HardFork.Combinator as Consensus
@@ -130,14 +131,13 @@ data QueryInShelleyBasedEra result where
 --       ::
 --       -> QueryInShelleyBasedEra
 
---     QueryLedgerState
---       :: QueryInShelleyBasedEra LedgerState
+     QueryLedgerState
+       :: QueryInShelleyBasedEra LedgerState
 
 --     QueryProtocolState
 --       :: QueryInShelleyBasedEra ProtocolState
 
 deriving instance Show (QueryInShelleyBasedEra result)
-
 
 -- ----------------------------------------------------------------------------
 -- Wrapper types used in queries
@@ -201,6 +201,8 @@ toConsensusQueryShelleyBased erainmode (QueryStakeAddresses stakeAddresses) = do
     let stakeCredentials = Set.map (\(StakeAddress _ cred) -> cred) stakeAddresses
     Some (consensusQueryInEraInMode erainmode $ Consensus.GetFilteredDelegationsAndRewardAccounts stakeCredentials)
 
+toConsensusQueryShelleyBased erainmode QueryLedgerState =
+    Some (consensusQueryInEraInMode erainmode $ Consensus.GetCBOR Consensus.DebugNewEpochState)
 
 consensusQueryInEraInMode
   :: forall era mode erablock modeblock result result' xs.
@@ -323,6 +325,14 @@ fromConsensusQueryResultShelleyBased (QueryStakeAddresses stakeCreds) q' result 
     case q' of
       Consensus.GetFilteredDelegationsAndRewardAccounts _ -> fromDelegsAndRewards result stakeCreds
       _                                                   -> fromConsensusQueryResultMismatch
+
+fromConsensusQueryResultShelleyBased QueryLedgerState q' ledgerStateCBOR =
+    case q' of
+      Consensus.GetCBOR Consensus.DebugNewEpochState -> LedgerState ledgerStateCBOR
+      _                                              -> fromConsensusQueryResultMismatch
+
+data LedgerState where
+  LedgerState :: Serialised (Ledger.NewEpochState ledgercrypto) -> LedgerState
 
 data StakeDistribution where
   StakeDistribution :: Shelley.PoolDistr ledgercrypto -> StakeDistribution
