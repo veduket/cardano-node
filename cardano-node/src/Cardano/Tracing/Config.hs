@@ -49,6 +49,7 @@ type TraceForge = ("TraceForge" :: Symbol)
 type TraceForgeStateInfo = ("TraceForgeStateInfo" :: Symbol)
 type TraceHandshake = ("TraceHandshake" :: Symbol)
 type TraceKeepAliveClient = ("TraceKeepAliveClient" :: Symbol)
+type TraceLedgerPeers = ("TraceLedgerPeers" :: Symbol)
 type TraceLocalChainSyncProtocol = ("TraceLocalChainSyncProtocol" :: Symbol)
 type TraceLocalConnectionManager = ("TraceLocalConnectionManager" :: Symbol)
 type TraceLocalHandshake = ("TraceLocalHandshake" :: Symbol)
@@ -102,6 +103,7 @@ data TraceSelection
   , traceForgeStateInfo :: OnOff TraceForgeStateInfo
   , traceHandshake :: OnOff TraceHandshake
   , traceKeepAliveClient :: OnOff TraceKeepAliveClient
+  , traceLedgerPeers :: OnOff TraceLedgerPeers
   , traceLocalChainSyncProtocol :: OnOff TraceLocalChainSyncProtocol
   , traceLocalConnectionManager :: OnOff TraceLocalConnectionManager
   , traceLocalHandshake :: OnOff TraceLocalHandshake
@@ -167,6 +169,8 @@ traceConfigParser v =
       handshake = OnOff False
       keepAliveClient :: OnOff TraceKeepAliveClient
       keepAliveClient = OnOff False
+      ledgerPeers :: OnOff TraceLedgerPeers
+      ledgerPeers = OnOff False
       localChainSyncProtocol :: OnOff TraceLocalChainSyncProtocol
       localChainSyncProtocol = OnOff False
       localConnectionManager :: OnOff TraceLocalConnectionManager
@@ -227,6 +231,7 @@ traceConfigParser v =
     <*> v .:? getName forgeStateInfo .!= forgeStateInfo
     <*> v .:? getName handshake .!= handshake
     <*> v .:? getName keepAliveClient .!= keepAliveClient
+    <*> v .:? getName ledgerPeers .!= ledgerPeers
     <*> v .:? getName localChainSyncProtocol .!= localChainSyncProtocol
     <*> v .:? getName localConnectionManager .!= localConnectionManager
     <*> v .:? getName localHandshake .!= localHandshake

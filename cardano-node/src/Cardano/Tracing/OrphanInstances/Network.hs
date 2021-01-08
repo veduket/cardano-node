@@ -52,6 +52,7 @@ import           Ouroboros.Network.PeerSelection.Governor
                     (PeerSelectionState (..), PeerSelectionTargets (..),
                      DebugPeerSelection (..))
 import qualified Ouroboros.Network.PeerSelection.KnownPeers as KnownPeers
+import           Ouroboros.Network.PeerSelection.LedgerPeers
 import qualified Ouroboros.Network.PeerSelection.EstablishedPeers as EstablishedPeers
 import           Ouroboros.Network.Protocol.BlockFetch.Type (BlockFetch, Message (..))
 import           Ouroboros.Network.Protocol.ChainSync.Type (ChainSync)
@@ -427,6 +428,20 @@ instance HasSeverityAnnotation (ServerTrace addr) where
       Server.TrPromotedToRemoteEstablished {}           -> Debug
       Server.TrEstablishedMiniProtocolTerminated {}     -> Info
 
+instance HasPrivacyAnnotation TraceLedgerPeers
+instance HasSeverityAnnotation TraceLedgerPeers where
+  getSeverityAnnotation ev =
+    case ev of
+      PickedPeer {}                  -> Debug
+      PickedPeers {}                 -> Info
+      FetchingNewLedgerState {}      -> Info
+      WaitingOnRequest {}            -> Debug
+      RequestForPeers {}             -> Debug
+      ReusingLedgerState {}          -> Debug
+      FallingBackToBootstrapPeers {} -> Info
+
+
+
 --
 -- | instances of @Transformable@
 --
@@ -572,6 +587,13 @@ instance Show addr
 instance Show addr
       => HasTextFormatter (ServerTrace addr) where
   formatText a _ = pack (show a)
+
+
+instance Transformable Text IO TraceLedgerPeers where
+  trTransformer = trStructuredText
+instance HasTextFormatter TraceLedgerPeers where
+  formatText a _ = pack (show a)
+
 
 --
 -- | instances of @ToObject@
@@ -1239,6 +1261,46 @@ instance (Show addr, Show versionNumber, Show agreedOptions, ToObject addr)
           , "connectionId" .= toObject verb connId
           , "reason" .= String (pack . show $ reason)
           ]
+
+
+instance ToObject TraceLedgerPeers where
+  toObject _verb (PickedPeer addr _ackStake stake) =
+    mkObject
+      [ "kind" .= String "TraceLedgerPeers PickedPeer"
+      , "address" .= show addr
+      , "relativeStake" .= (fromRational (unPoolStake stake) :: Double)
+      ]
+  toObject _verb (PickedPeers (NumberOfPeers n) addrs) =
+    mkObject
+      [ "kind" .= String "TraceLedgerPeers PickedPeers"
+      , "desiredCount" .= n
+      , "count" .= length addrs
+      , "addresses" .= show addrs
+      ]
+  toObject _verb (FetchingNewLedgerState cnt) =
+    mkObject
+      [ "kind" .= String "TraceLedgerPeers FetchingNewLedgerState"
+      , "numberOfPools" .= cnt
+      ]
+  toObject _verb WaitingOnRequest =
+    mkObject
+      [ "kind" .= String "TraceLedgerPeers WaitingOnRequest"
+      ]
+  toObject _verb (RequestForPeers (NumberOfPeers np)) =
+    mkObject
+      [ "kind" .= String "TraceLedgerPeers RequestForPeers"
+      , "numberOfPeers" .= np
+      ]
+  toObject _verb (ReusingLedgerState cnt age) =
+    mkObject
+      [ "kind" .= String "TraceLedgerPeers ReusingLedgerState"
+      , "numberOfPools" .= cnt
+      , "ledgerStateAge" .= show age
+      ]
+  toObject _verb FallingBackToBootstrapPeers =
+    mkObject
+      [ "kind" .= String "TraceLedgerPeers FallingBackToBootstrapPeers"
+      ]
 
 
 instance Show addr

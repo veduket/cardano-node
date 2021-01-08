@@ -367,7 +367,6 @@ createDiffusionArguments NodeConfiguration {
                            ncTargetNumberOfEstablishedPeers,
                            ncTargetNumberOfActivePeers,
                            ncDiffusionMode,
-                           ncRespondersIdleTimeout,
                            ncProtocolIdleTimeout,
                            ncWaitTimeTimeout
                          }
@@ -410,7 +409,6 @@ createDiffusionArguments NodeConfiguration {
         targetNumberOfEstablishedPeers = ncTargetNumberOfEstablishedPeers,
         targetNumberOfActivePeers      = ncTargetNumberOfActivePeers
       }
-    , daRespondersIdleTimeout = ncRespondersIdleTimeout
     , daProtocolIdleTimeout   = ncProtocolIdleTimeout
     , daWaitTimeTimeout       = ncWaitTimeTimeout
     }
