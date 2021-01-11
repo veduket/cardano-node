@@ -25,7 +25,7 @@ import           Control.Monad.Trans.Except.Extra (firstExceptT, handleIOExceptT
                      hoistMaybe, left, newExceptT)
 
 import           Cardano.Api
-import           Cardano.Api.Byron
+import           Cardano.Api.Byron hiding (SomeByronSigningKey (..))
 import qualified Cardano.Api.IPC as NewIPC
 import           Cardano.Api.Shelley
 import           Cardano.Api.TxInMode
