@@ -27,6 +27,7 @@ module Cardano.Api.Query (
 
     -- TODO: Move me
     LedgerState(..),
+    ProtocolState(..),
   ) where
 
 import           Data.Bifunctor (bimap)
@@ -142,20 +143,23 @@ data QueryInShelleyBasedEra era result where
        -> QueryInShelleyBasedEra era (Map StakeAddress Lovelace,
                                       Map StakeAddress PoolId)
 
---     QueryPoolRanking
---       ::
---       -> QueryInShelleyBasedEra
+     -- TODO: Need to update ledger-specs dependency to access RewardProvenance
+     -- QueryPoolRanking
+     --   :: QueryInShelleyBasedEra era RewardProvenance
 
      QueryLedgerState
        :: QueryInShelleyBasedEra era (LedgerState era)
 
---     QueryProtocolState
---       :: QueryInShelleyBasedEra ProtocolState
---TODO: add support for these
+     QueryProtocolState
+       :: QueryInShelleyBasedEra era (ProtocolState era)
 
 deriving instance Show (QueryInShelleyBasedEra era result)
 
 newtype LedgerState era = LedgerState (Serialised (Shelley.NewEpochState (ShelleyLedgerEra era)))
+
+newtype ProtocolState era
+  = ProtocolState (Serialised (Shelley.ChainDepState (Ledger.Crypto (ShelleyLedgerEra era))))
+
 
 -- ----------------------------------------------------------------------------
 -- Wrapper types used in queries
@@ -300,6 +304,8 @@ toConsensusQueryShelleyBased erainmode (QueryStakeAddresses creds _nId) =
 toConsensusQueryShelleyBased erainmode QueryLedgerState =
     Some (consensusQueryInEraInMode erainmode (Consensus.GetCBOR Consensus.DebugNewEpochState))
 
+toConsensusQueryShelleyBased erainmode QueryProtocolState =
+    Some (consensusQueryInEraInMode erainmode (Consensus.GetCBOR Consensus.DebugChainDepState))
 
 consensusQueryInEraInMode
   :: forall era mode erablock modeblock result result' xs.
@@ -453,6 +459,11 @@ fromConsensusQueryResultShelleyBased (QueryStakeAddresses _ nId) q' r' =
 fromConsensusQueryResultShelleyBased QueryLedgerState{} q' r' =
     case q' of
       Consensus.GetCBOR Consensus.DebugNewEpochState -> LedgerState r'
+      _                                              -> fromConsensusQueryResultMismatch
+
+fromConsensusQueryResultShelleyBased QueryProtocolState q' r' =
+    case q' of
+      Consensus.GetCBOR Consensus.DebugChainDepState -> ProtocolState r'
       _                                              -> fromConsensusQueryResultMismatch
 
 -- | This should /only/ happen if we messed up the mapping in 'toConsensusQuery'
