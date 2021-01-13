@@ -1,6 +1,8 @@
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE EmptyCase #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE GeneralisedNewtypeDeriving #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
@@ -30,6 +32,7 @@ module Cardano.Api.Query (
     ProtocolState(..),
   ) where
 
+import           Data.Aeson (ToJSON)
 import           Data.Bifunctor (bimap)
 import           Data.Map (Map)
 import qualified Data.Map as Map
@@ -171,6 +174,8 @@ newtype ByronUpdateState = ByronUpdateState Byron.Update.State
   deriving Show
 
 newtype UTxO era = UTxO (Map TxIn (TxOut era))
+
+deriving newtype instance IsCardanoEra era => ToJSON (UTxO era)
 
 toShelleyAddrSet :: CardanoEra era
                  -> Set AddressAny
