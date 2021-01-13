@@ -24,6 +24,9 @@ module Cardano.Api.Query (
     -- * Internal conversion functions
     toConsensusQuery,
     fromConsensusQueryResult,
+
+    -- TODO: Move me
+    LedgerState(..),
   ) where
 
 import           Data.Bifunctor (bimap)
@@ -46,6 +49,7 @@ import qualified Ouroboros.Consensus.Byron.Ledger as Consensus
 import           Ouroboros.Consensus.Cardano.Block (StandardCrypto)
 import qualified Ouroboros.Consensus.Cardano.Block as Consensus
 import qualified Ouroboros.Consensus.Shelley.Ledger as Consensus
+import           Ouroboros.Network.Block (Serialised)
 
 import qualified Cardano.Chain.Update.Validation.Interface as Byron.Update
 
@@ -142,8 +146,8 @@ data QueryInShelleyBasedEra era result where
 --       ::
 --       -> QueryInShelleyBasedEra
 
---     QueryLedgerState
---       :: QueryInShelleyBasedEra LedgerState
+     QueryLedgerState
+       :: QueryInShelleyBasedEra era (LedgerState era)
 
 --     QueryProtocolState
 --       :: QueryInShelleyBasedEra ProtocolState
@@ -151,6 +155,7 @@ data QueryInShelleyBasedEra era result where
 
 deriving instance Show (QueryInShelleyBasedEra era result)
 
+newtype LedgerState era = LedgerState (Serialised (Shelley.NewEpochState (ShelleyLedgerEra era)))
 
 -- ----------------------------------------------------------------------------
 -- Wrapper types used in queries
@@ -291,6 +296,9 @@ toConsensusQueryShelleyBased erainmode (QueryStakeAddresses creds _nId) =
   where
     creds' :: Set (Shelley.Credential Shelley.Staking StandardCrypto)
     creds' = Set.map toShelleyStakeCredential creds
+
+toConsensusQueryShelleyBased erainmode QueryLedgerState =
+    Some (consensusQueryInEraInMode erainmode (Consensus.GetCBOR Consensus.DebugNewEpochState))
 
 
 consensusQueryInEraInMode
@@ -442,6 +450,10 @@ fromConsensusQueryResultShelleyBased (QueryStakeAddresses _ nId) q' r' =
               )
       _ -> fromConsensusQueryResultMismatch
 
+fromConsensusQueryResultShelleyBased QueryLedgerState{} q' r' =
+    case q' of
+      Consensus.GetCBOR Consensus.DebugNewEpochState -> LedgerState r'
+      _                                              -> fromConsensusQueryResultMismatch
 
 -- | This should /only/ happen if we messed up the mapping in 'toConsensusQuery'
 -- and 'fromConsensusQueryResult' so they are inconsistent with each other.
