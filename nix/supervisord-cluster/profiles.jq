@@ -15,8 +15,8 @@
 ##  - era-dependent defaults for the aforementioned sections:
 ##    - profiles/defaults.jq
 ##
-##  - overlayed with generated profile variants + aux (ad-hoc) profiles:
-##    - profiles/variants.jq and profiles/aux.jq
+##  - overlayed with generated profile variants + ad-hoc profiles:
+##    - profiles/variants.jq and profiles/adhoc.jq
 ##
 ##  - each then further overlayed with derived parameters, computed from the above:
 ##    - profiles/derived.jq
@@ -41,7 +41,7 @@
 
 include "topology"    { search: "profiles" };
 include "defaults"    { search: "profiles" };
-include "aux"         { search: "profiles" };
+include "adhoc"       { search: "profiles" };
 include "variants"    { search: "profiles" };
 include "derived"     { search: "profiles" };
 
@@ -49,7 +49,7 @@ def profiles($era; $mcompo; $topo):
     ($mcompo // topology_composition($topo // {}) // {}) as $compo
 
   ## Profiles are variants + custom (or aux) profiles:
-  | all_profile_variants + aux_profiles
+  | all_profile_variants + adhoc_profiles
 
   | map (## Each profile extends defaults:
          era_defaults($era) * .

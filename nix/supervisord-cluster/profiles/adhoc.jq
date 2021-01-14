@@ -1,4 +1,4 @@
-def aux_profiles:
+def adhoc_profiles:
 [ { name: "short"
   , generator: { tx_count: 10000, inputs_per_tx: 1, outputs_per_tx: 1,  tps: 100 }
   }
