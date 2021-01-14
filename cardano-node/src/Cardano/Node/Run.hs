@@ -68,6 +68,7 @@ import           Ouroboros.Consensus.Util.Orphans ()
 import           Ouroboros.Network.Magic (NetworkMagic (..))
 import           Ouroboros.Network.NodeToNode (AcceptedConnectionsLimit (..),
                    DomainAddress, PeerSelectionTargets (..))
+import           Ouroboros.Network.PeerSelection.LedgerPeers (UseLedgerAfter (..))
 
 import           Cardano.Node.Configuration.Socket (SocketOrSocketInfo (..),
                      gatherConfiguredSockets, getSocketOrSocketInfoAddr)
@@ -224,6 +225,7 @@ handleSimpleNode p trace nodeTracers nc onKernel = do
           ((\(a,b) -> (nodeDnsAddressToDomainAddress a, b))
             `map` dnsLocalRoots)
           []
+          (useLedgerAfterSlot nt)
 
   ipv4 <- traverse getSocketOrSocketInfoAddr publicIPv4SocketOrAddr
   ipv6 <- traverse getSocketOrSocketInfoAddr publicIPv6SocketOrAddr
@@ -360,6 +362,7 @@ createDiffusionArguments
   -> [(SockAddr, PeerAdvertise)]
   -> [(DomainAddress, PeerAdvertise)]
   -> [DomainAddress]
+  -> UseLedgerAfter
   -> DiffusionArguments
 createDiffusionArguments NodeConfiguration {
                            ncTargetNumberOfRootPeers,
@@ -376,6 +379,7 @@ createDiffusionArguments NodeConfiguration {
                          daStaticLocalRootPeers
                          daLocalRootPeers
                          daPublicRootPeers
+                         daUseLedgerAfter
                          =
   DiffusionArguments
     { daIPv4Address = case publicIPv4SocketsOrAddrs of
@@ -392,6 +396,7 @@ createDiffusionArguments NodeConfiguration {
     , daStaticLocalRootPeers
     , daLocalRootPeers
     , daPublicRootPeers
+    , daUseLedgerAfter
     -- TODO: these limits are arbitrary at the moment;
     -- issue: https://github.com/input-output-hk/ouroboros-network/issues/1836
     , daAcceptedConnectionsLimit = AcceptedConnectionsLimit {
@@ -420,6 +425,17 @@ producerAddresses
      , [(NodeDnsAddress, PeerAdvertise)])
 producerAddresses nt =
   case nt of
-    RealNodeTopology producers' -> partitionEithers $ map remoteAddressToNodeAddress producers'
+    RealNodeTopology producers' _ -> partitionEithers $ map remoteAddressToNodeAddress producers'
     MockNodeTopology nodeSetup ->
       partitionEithers . map remoteAddressToNodeAddress $ concatMap producers nodeSetup
+
+useLedgerAfterSlot
+  :: NetworkTopology
+  -> UseLedgerAfter
+useLedgerAfterSlot nt =
+  case nt of
+       RealNodeTopology _ (UseLedger ul) -> ul
+       MockNodeTopology (nodeSetup:_)    ->
+           let (UseLedger ul) = useLedger nodeSetup in
+           ul
+       MockNodeTopology [] -> DontUseLedger
