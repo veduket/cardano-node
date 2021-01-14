@@ -207,7 +207,7 @@ getTxId (ShelleyTxBody era tx _) =
       ShelleyBasedEraMary    -> getTxIdShelley tx
   where
     getTxIdShelley :: Ledger.Crypto ledgerera ~ StandardCrypto
-                   => Ledger.TxBodyConstraints ledgerera
+                   => Ledger.UsesTxBody ledgerera
                    => Ledger.TxBody ledgerera -> TxId
     getTxIdShelley =
         TxId
