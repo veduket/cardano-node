@@ -66,7 +66,7 @@ import           Data.String (IsString)
 import           Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
-import           Data.Type.Equality (TestEquality(..), (:~:)(Refl))
+import           Data.Type.Equality ((:~:) (Refl), TestEquality (..))
 
 import           Data.Aeson (Value (..), object, (.:), (.=))
 import qualified Data.Aeson as Aeson
@@ -806,6 +806,7 @@ instance IsCardanoEra era => FromJSON (ScriptInEra era) where
                                      (SimpleScript SimpleScriptV2 s)
               Just s' -> ScriptInEra SimpleScriptV1InMary
                                      (SimpleScript SimpleScriptV1 s')
+      AlonzoEra -> error "TODO"
 
 
 instance IsSimpleScriptLanguage lang => FromJSON (SimpleScript lang) where

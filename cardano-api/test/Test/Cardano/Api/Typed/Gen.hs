@@ -348,6 +348,7 @@ genTxOutValue era =
     ShelleyEra -> TxOutAdaOnly AdaOnlyInShelleyEra <$> genLovelace
     AllegraEra -> TxOutAdaOnly AdaOnlyInAllegraEra <$> genLovelace
     MaryEra -> TxOutValue MultiAssetInMaryEra <$> genValueForTxOut
+    AlonzoEra -> panic "TODO"
 
 genTxOut :: CardanoEra era -> Gen (TxOut era)
 genTxOut era =
@@ -362,6 +363,7 @@ genTxOut era =
       TxOut
         <$> (shelleyAddressInEra <$> genAddressShelley)
         <*> genTxOutValue era
+    AlonzoEra -> panic "TODO"
 
 genTtl :: Gen SlotNo
 genTtl = genSlotNo
@@ -374,6 +376,7 @@ genTxValidityLowerBound era =
     ShelleyEra -> pure TxValidityNoLowerBound
     AllegraEra -> TxValidityLowerBound ValidityLowerBoundInAllegraEra <$> genTtl
     MaryEra -> TxValidityLowerBound ValidityLowerBoundInMaryEra <$> genTtl
+    AlonzoEra -> panic "TODO"
 
 -- TODO: Accept a range for generating ttl.
 genTxValidityUpperBound :: CardanoEra era -> Gen (TxValidityUpperBound era)
@@ -383,6 +386,7 @@ genTxValidityUpperBound era =
     ShelleyEra -> TxValidityUpperBound ValidityUpperBoundInShelleyEra <$> genTtl
     AllegraEra -> TxValidityUpperBound ValidityUpperBoundInAllegraEra <$> genTtl
     MaryEra -> TxValidityUpperBound ValidityUpperBoundInMaryEra <$> genTtl
+    AlonzoEra -> panic "TODO"
 
 genTxValidityRange
   :: CardanoEra era
@@ -411,6 +415,7 @@ genTxMetadataInEra era =
         [ pure TxMetadataNone
         , TxMetadataInEra TxMetadataInMaryEra <$> genTxMetadata
         ]
+    AlonzoEra -> panic "TODO"
 
 genTxAuxScripts :: CardanoEra era -> Gen (TxAuxScripts era)
 genTxAuxScripts era =
@@ -423,6 +428,7 @@ genTxAuxScripts era =
     MaryEra    -> TxAuxScripts AuxScriptsInMaryEra
                            <$> Gen.list (Range.linear 0 3)
                                         (genScriptInEra MaryEra)
+    AlonzoEra -> panic "TODO"
 
 genTxWithdrawals :: CardanoEra era -> Gen (TxWithdrawals era)
 genTxWithdrawals era =
@@ -443,6 +449,7 @@ genTxWithdrawals era =
         [ pure TxWithdrawalsNone
         , pure (TxWithdrawals WithdrawalsInMaryEra mempty) -- TODO: Generate withdrawals
         ]
+    AlonzoEra -> panic "TODO"
 
 genTxCertificates :: CardanoEra era -> Gen (TxCertificates era)
 genTxCertificates era =
@@ -463,6 +470,7 @@ genTxCertificates era =
         [ pure TxCertificatesNone
         , pure (TxCertificates CertificatesInMaryEra mempty) -- TODO: Generate certificates
         ]
+    AlonzoEra -> panic "TODO"
 
 genTxUpdateProposal :: CardanoEra era -> Gen (TxUpdateProposal era)
 genTxUpdateProposal era =
@@ -483,6 +491,7 @@ genTxUpdateProposal era =
         [ pure TxUpdateProposalNone
         , pure (TxUpdateProposal UpdateProposalInMaryEra emptyUpdateProposal) -- TODO: Generate proposals
         ]
+    AlonzoEra -> panic "TODO"
   where
     emptyUpdateProposal :: UpdateProposal
     emptyUpdateProposal = UpdateProposal Map.empty (EpochNo 0)
@@ -498,6 +507,7 @@ genTxMintValue era =
         [ pure TxMintNone
         , TxMintValue MultiAssetInMaryEra <$> genValueForMinting
         ]
+    AlonzoEra -> panic "TODO"
 
 genTxBodyContent :: CardanoEra era -> Gen (TxBodyContent era)
 genTxBodyContent era = do
@@ -532,6 +542,7 @@ genTxFee era =
     ShelleyEra -> TxFeeExplicit TxFeesExplicitInShelleyEra <$> genLovelace
     AllegraEra -> TxFeeExplicit TxFeesExplicitInAllegraEra <$> genLovelace
     MaryEra -> TxFeeExplicit TxFeesExplicitInMaryEra <$> genLovelace
+    AlonzoEra -> panic "TODO"
 
 genTxBody :: CardanoEra era -> Gen (TxBody era)
 genTxBody era =
@@ -548,6 +559,7 @@ genTxBody era =
       case res of
         Left err -> fail (show err) -- TODO: Render function for TxBodyError
         Right txBody -> pure txBody
+    AlonzoEra -> panic "TODO"
 
 genTx :: forall era. CardanoEra era -> Gen (Tx era)
 genTx era =
@@ -562,6 +574,7 @@ genTx era =
         ShelleyEra -> genShelleyBasedWitnessList
         AllegraEra -> genShelleyBasedWitnessList
         MaryEra -> genShelleyBasedWitnessList
+        AlonzoEra -> panic ""
 
     genShelleyBasedWitnessList :: IsShelleyBasedEra era => Gen [Witness era]
     genShelleyBasedWitnessList = do

@@ -285,7 +285,28 @@ toShelleyTxOut (TxOut addr (TxOutAdaOnly AdaOnlyInAllegraEra value)) =
 
 toShelleyTxOut (TxOut addr (TxOutValue MultiAssetInMaryEra value)) =
     Shelley.TxOut (toShelleyAddr addr) (toMaryValue value)
+toShelleyTxOut _ = error "todo"
 
+data LedgerTxOut ledgerera where
+    ShelleyLedgerTxOut :: Shelley.TxOut ledgerera -> LedgerTxOut ledgerera
+ -- AllegraLedgerTxOut :: Allegra.TxOut ledgerera -> LedgerTxOut ledgerera
+ -- MaryLedgerTxOut    :: Mary.TxOut ledgerera    -> LedgerTxOut ledgerera
+ -- AlonzoLedgerTxOut  :: Alonzo.TxOut ledgerera  -> LedgerTxOut ledgerera
+data LedgerAddress ledgerera where
+  ShelleyLedgerAddress :: Shelley.Addr StandardCrypto -> LedgerAddress StandardCrypto
+
+fromLedgerTxOut :: forall era ledgerera.
+                   (Ledger.UsesValue ledgerera, Ledger.Crypto ledgerera ~ StandardCrypto)
+                => LedgerTxOut ledgerera -> TxOut era
+fromLedgerTxOut txout =
+  case txout of
+    ShelleyLedgerTxOut (Shelley.TxOut addr _value) ->
+      TxOut (fromLedgerAddr $ ShelleyLedgerAddress addr) (error "")
+
+fromLedgerAddr :: LedgerAddress ledgerera -> AddressInEra era
+fromLedgerAddr ledgerAddr =
+  case ledgerAddr of
+    ShelleyLedgerAddress _ -> error ""
 
 fromShelleyTxOut :: forall era ledgerera.
                    (ShelleyLedgerEra era ~ ledgerera,
@@ -319,7 +340,8 @@ fromShelleyTxOut (Shelley.TxOut addr value) =
 data MultiAssetSupportedInEra era where
 
      -- | Multi-asset transactions are supported in the 'Mary' era.
-     MultiAssetInMaryEra :: MultiAssetSupportedInEra MaryEra
+     MultiAssetInMaryEra   :: MultiAssetSupportedInEra MaryEra
+     MultiAssetInAlonzoEra :: MultiAssetSupportedInEra AlonzoEra
 
 deriving instance Eq   (MultiAssetSupportedInEra era)
 deriving instance Show (MultiAssetSupportedInEra era)
@@ -348,7 +370,7 @@ multiAssetSupportedInEra ByronEra   = Left AdaOnlyInByronEra
 multiAssetSupportedInEra ShelleyEra = Left AdaOnlyInShelleyEra
 multiAssetSupportedInEra AllegraEra = Left AdaOnlyInAllegraEra
 multiAssetSupportedInEra MaryEra    = Right MultiAssetInMaryEra
-
+multiAssetSupportedInEra AlonzoEra  = Right MultiAssetInAlonzoEra
 
 -- | A representation of whether the era requires explicitly specified fees in
 -- transactions.
@@ -362,6 +384,7 @@ data TxFeesExplicitInEra era where
      TxFeesExplicitInShelleyEra :: TxFeesExplicitInEra ShelleyEra
      TxFeesExplicitInAllegraEra :: TxFeesExplicitInEra AllegraEra
      TxFeesExplicitInMaryEra    :: TxFeesExplicitInEra MaryEra
+     TxFeesExplicitInAlonzoEra  :: TxFeesExplicitInEra AlonzoEra
 
 deriving instance Eq   (TxFeesExplicitInEra era)
 deriving instance Show (TxFeesExplicitInEra era)
@@ -384,6 +407,7 @@ txFeesExplicitInEra ByronEra   = Left  TxFeesImplicitInByronEra
 txFeesExplicitInEra ShelleyEra = Right TxFeesExplicitInShelleyEra
 txFeesExplicitInEra AllegraEra = Right TxFeesExplicitInAllegraEra
 txFeesExplicitInEra MaryEra    = Right TxFeesExplicitInMaryEra
+txFeesExplicitInEra AlonzoEra  = Right TxFeesExplicitInAlonzoEra
 
 
 -- | A representation of whether the era supports transactions with an upper
@@ -398,6 +422,7 @@ data ValidityUpperBoundSupportedInEra era where
      ValidityUpperBoundInShelleyEra :: ValidityUpperBoundSupportedInEra ShelleyEra
      ValidityUpperBoundInAllegraEra :: ValidityUpperBoundSupportedInEra AllegraEra
      ValidityUpperBoundInMaryEra    :: ValidityUpperBoundSupportedInEra MaryEra
+     ValidityUpperBoundInAlonzoEra  :: ValidityUpperBoundSupportedInEra AlonzoEra
 
 deriving instance Eq   (ValidityUpperBoundSupportedInEra era)
 deriving instance Show (ValidityUpperBoundSupportedInEra era)
@@ -408,6 +433,7 @@ validityUpperBoundSupportedInEra ByronEra   = Nothing
 validityUpperBoundSupportedInEra ShelleyEra = Just ValidityUpperBoundInShelleyEra
 validityUpperBoundSupportedInEra AllegraEra = Just ValidityUpperBoundInAllegraEra
 validityUpperBoundSupportedInEra MaryEra    = Just ValidityUpperBoundInMaryEra
+validityUpperBoundSupportedInEra AlonzoEra  = Just ValidityUpperBoundInAlonzoEra
 
 
 -- | A representation of whether the era supports transactions having /no/
@@ -425,6 +451,7 @@ data ValidityNoUpperBoundSupportedInEra era where
      ValidityNoUpperBoundInByronEra   :: ValidityNoUpperBoundSupportedInEra ByronEra
      ValidityNoUpperBoundInAllegraEra :: ValidityNoUpperBoundSupportedInEra AllegraEra
      ValidityNoUpperBoundInMaryEra    :: ValidityNoUpperBoundSupportedInEra MaryEra
+     ValidityNoUpperBoundInAlonzoEra  :: ValidityNoUpperBoundSupportedInEra AlonzoEra
 
 deriving instance Eq   (ValidityNoUpperBoundSupportedInEra era)
 deriving instance Show (ValidityNoUpperBoundSupportedInEra era)
@@ -435,6 +462,7 @@ validityNoUpperBoundSupportedInEra ByronEra   = Just ValidityNoUpperBoundInByron
 validityNoUpperBoundSupportedInEra ShelleyEra = Nothing
 validityNoUpperBoundSupportedInEra AllegraEra = Just ValidityNoUpperBoundInAllegraEra
 validityNoUpperBoundSupportedInEra MaryEra    = Just ValidityNoUpperBoundInMaryEra
+validityNoUpperBoundSupportedInEra AlonzoEra  = Just ValidityNoUpperBoundInAlonzoEra
 
 
 -- | A representation of whether the era supports transactions with a lower
@@ -448,6 +476,7 @@ data ValidityLowerBoundSupportedInEra era where
 
      ValidityLowerBoundInAllegraEra :: ValidityLowerBoundSupportedInEra AllegraEra
      ValidityLowerBoundInMaryEra    :: ValidityLowerBoundSupportedInEra MaryEra
+     ValidityLowerBoundInAlonzoEra  :: ValidityLowerBoundSupportedInEra AlonzoEra
 
 deriving instance Eq   (ValidityLowerBoundSupportedInEra era)
 deriving instance Show (ValidityLowerBoundSupportedInEra era)
@@ -458,6 +487,7 @@ validityLowerBoundSupportedInEra ByronEra   = Nothing
 validityLowerBoundSupportedInEra ShelleyEra = Nothing
 validityLowerBoundSupportedInEra AllegraEra = Just ValidityLowerBoundInAllegraEra
 validityLowerBoundSupportedInEra MaryEra    = Just ValidityLowerBoundInMaryEra
+validityLowerBoundSupportedInEra AlonzoEra  = Just ValidityLowerBoundInAlonzoEra
 
 
 -- | A representation of whether the era supports transaction metadata.
@@ -469,6 +499,7 @@ data TxMetadataSupportedInEra era where
      TxMetadataInShelleyEra :: TxMetadataSupportedInEra ShelleyEra
      TxMetadataInAllegraEra :: TxMetadataSupportedInEra AllegraEra
      TxMetadataInMaryEra    :: TxMetadataSupportedInEra MaryEra
+     TxMetadataInAlonzoEra  :: TxMetadataSupportedInEra AlonzoEra
 
 deriving instance Eq   (TxMetadataSupportedInEra era)
 deriving instance Show (TxMetadataSupportedInEra era)
@@ -479,6 +510,7 @@ txMetadataSupportedInEra ByronEra   = Nothing
 txMetadataSupportedInEra ShelleyEra = Just TxMetadataInShelleyEra
 txMetadataSupportedInEra AllegraEra = Just TxMetadataInAllegraEra
 txMetadataSupportedInEra MaryEra    = Just TxMetadataInMaryEra
+txMetadataSupportedInEra AlonzoEra    = Just TxMetadataInAlonzoEra
 
 
 -- | A representation of whether the era supports auxiliary scripts in
@@ -490,6 +522,7 @@ data AuxScriptsSupportedInEra era where
 
      AuxScriptsInAllegraEra :: AuxScriptsSupportedInEra AllegraEra
      AuxScriptsInMaryEra    :: AuxScriptsSupportedInEra MaryEra
+     AuxScriptsInAlonzoEra  :: AuxScriptsSupportedInEra AlonzoEra
 
 deriving instance Eq   (AuxScriptsSupportedInEra era)
 deriving instance Show (AuxScriptsSupportedInEra era)
@@ -500,6 +533,7 @@ auxScriptsSupportedInEra ByronEra   = Nothing
 auxScriptsSupportedInEra ShelleyEra = Nothing
 auxScriptsSupportedInEra AllegraEra = Just AuxScriptsInAllegraEra
 auxScriptsSupportedInEra MaryEra    = Just AuxScriptsInMaryEra
+auxScriptsSupportedInEra AlonzoEra  = Just AuxScriptsInAlonzoEra
 
 
 -- | A representation of whether the era supports withdrawals from reward
@@ -513,6 +547,7 @@ data WithdrawalsSupportedInEra era where
      WithdrawalsInShelleyEra :: WithdrawalsSupportedInEra ShelleyEra
      WithdrawalsInAllegraEra :: WithdrawalsSupportedInEra AllegraEra
      WithdrawalsInMaryEra    :: WithdrawalsSupportedInEra MaryEra
+     WithdrawalsInAlonzoEra  :: WithdrawalsSupportedInEra AlonzoEra
 
 deriving instance Eq   (WithdrawalsSupportedInEra era)
 deriving instance Show (WithdrawalsSupportedInEra era)
@@ -523,6 +558,7 @@ withdrawalsSupportedInEra ByronEra   = Nothing
 withdrawalsSupportedInEra ShelleyEra = Just WithdrawalsInShelleyEra
 withdrawalsSupportedInEra AllegraEra = Just WithdrawalsInAllegraEra
 withdrawalsSupportedInEra MaryEra    = Just WithdrawalsInMaryEra
+withdrawalsSupportedInEra AlonzoEra  = Just WithdrawalsInAlonzoEra
 
 
 -- | A representation of whether the era supports 'Certificate's embedded in
@@ -535,6 +571,7 @@ data CertificatesSupportedInEra era where
      CertificatesInShelleyEra :: CertificatesSupportedInEra ShelleyEra
      CertificatesInAllegraEra :: CertificatesSupportedInEra AllegraEra
      CertificatesInMaryEra    :: CertificatesSupportedInEra MaryEra
+     CertificatesInAlonzoEra  :: CertificatesSupportedInEra AlonzoEra
 
 deriving instance Eq   (CertificatesSupportedInEra era)
 deriving instance Show (CertificatesSupportedInEra era)
@@ -545,6 +582,7 @@ certificatesSupportedInEra ByronEra   = Nothing
 certificatesSupportedInEra ShelleyEra = Just CertificatesInShelleyEra
 certificatesSupportedInEra AllegraEra = Just CertificatesInAllegraEra
 certificatesSupportedInEra MaryEra    = Just CertificatesInMaryEra
+certificatesSupportedInEra AlonzoEra  = Just CertificatesInAlonzoEra
 
 
 -- | A representation of whether the era supports 'UpdateProposal's embedded in
@@ -559,6 +597,7 @@ data UpdateProposalSupportedInEra era where
      UpdateProposalInShelleyEra :: UpdateProposalSupportedInEra ShelleyEra
      UpdateProposalInAllegraEra :: UpdateProposalSupportedInEra AllegraEra
      UpdateProposalInMaryEra    :: UpdateProposalSupportedInEra MaryEra
+     UpdateProposalInAlonzoEra  :: UpdateProposalSupportedInEra AlonzoEra
 
 deriving instance Eq   (UpdateProposalSupportedInEra era)
 deriving instance Show (UpdateProposalSupportedInEra era)
@@ -569,6 +608,7 @@ updateProposalSupportedInEra ByronEra   = Nothing
 updateProposalSupportedInEra ShelleyEra = Just UpdateProposalInShelleyEra
 updateProposalSupportedInEra AllegraEra = Just UpdateProposalInAllegraEra
 updateProposalSupportedInEra MaryEra    = Just UpdateProposalInMaryEra
+updateProposalSupportedInEra AlonzoEra  = Just UpdateProposalInAlonzoEra
 
 
 -- ----------------------------------------------------------------------------
@@ -864,6 +904,7 @@ instance IsCardanoEra era => SerialiseAsCBOR (TxBody era) where
                         (ShelleyTxBody ShelleyBasedEraAllegra) bs
         MaryEra    -> deserialiseShelleyBasedTxBody
                         (ShelleyTxBody ShelleyBasedEraMary) bs
+        AlonzoEra  -> error "TODO"
 
 -- | The serialisation format for the different Shelley-based eras are not the
 -- same, but they can be handled generally with one overloaded implementation.
@@ -906,6 +947,7 @@ instance IsCardanoEra era => HasTextEnvelope (TxBody era) where
         ShelleyEra -> "TxUnsignedShelley"
         AllegraEra -> "TxBodyAllegra"
         MaryEra    -> "TxBodyMary"
+        AlonzoEra  -> "TxBodyAlonzo"
 
 
 -- ----------------------------------------------------------------------------
@@ -949,6 +991,7 @@ makeTransactionBody =
     case cardanoEraStyle (cardanoEra :: CardanoEra era) of
       LegacyByronEra      -> makeByronTransactionBody
       ShelleyBasedEra era -> makeShelleyTransactionBody era
+      AlonzoBasedEra -> error "TODO"
 
 
 makeByronTransactionBody :: TxBodyContent ByronEra

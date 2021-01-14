@@ -388,6 +388,7 @@ anyAddressInEra era (AddressShelley addr) =
     case cardanoEraStyle era of
       LegacyByronEra       -> Nothing
       ShelleyBasedEra era' -> Just (AddressInEra (ShelleyAddressInEra era') addr)
+      AlonzoBasedEra       -> error "TODO"
 
 toAddressAny :: Address addr -> AddressAny
 toAddressAny a@ShelleyAddress{} = AddressShelley a

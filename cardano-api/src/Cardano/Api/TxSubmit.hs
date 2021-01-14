@@ -114,6 +114,8 @@ submitTx connctInfo txformode =
               (MaryEra, ShelleyTx _ tx') ->
                 GenTxMary (mkShelleyTx tx')
 
+              _ -> panic "TODO - Alonzo"
+
         result <- submitTxToNodeLocal connctInfo genTx
         case result of
           SubmitSuccess      -> return TxSubmitSuccess

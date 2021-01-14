@@ -1,7 +1,7 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE PatternSynonyms #-}
 
 
 -- | Cardano eras, sometimes we have to distinguish them.
@@ -12,6 +12,7 @@ module Cardano.Api.Eras
   , ShelleyEra
   , AllegraEra
   , MaryEra
+  , AlonzoEra
   , CardanoEra(..)
   , IsCardanoEra(..)
   , AnyCardanoEra(..)
@@ -39,16 +40,17 @@ module Cardano.Api.Eras
     -- * Data family instances
   , AsType(AsByronEra, AsShelleyEra, AsAllegraEra, AsMaryEra,
            AsByron,    AsShelley,    AsAllegra,    AsMary)
+
   ) where
 
 import           Prelude
 
-import           Data.Type.Equality (TestEquality(..), (:~:)(Refl))
+import           Data.Type.Equality ((:~:) (Refl), TestEquality (..))
 
 import           Cardano.Ledger.Era as Ledger (Crypto)
 
-import           Ouroboros.Consensus.Shelley.Eras as Ledger
-                   (StandardShelley, StandardAllegra, StandardMary, StandardCrypto)
+import           Ouroboros.Consensus.Shelley.Eras as Ledger (StandardAllegra, StandardCrypto,
+                     StandardMary, StandardShelley)
 
 import           Cardano.Api.HasTypeProxy
 
@@ -64,6 +66,9 @@ data AllegraEra
 
 -- | A type used as a tag to distinguish the Mary era.
 data MaryEra
+
+-- | A type used as a tag to distinguish the Alonzo era.
+data AlonzoEra
 
 
 instance HasTypeProxy ByronEra where
@@ -82,6 +87,9 @@ instance HasTypeProxy MaryEra where
     data AsType MaryEra = AsMaryEra
     proxyToAsType _ = AsMaryEra
 
+instance HasTypeProxy AlonzoEra where
+    data AsType AlonzoEra = AsAlonzoEra
+    proxyToAsType _ = AsAlonzoEra
 
 -- ----------------------------------------------------------------------------
 -- Deprecated aliases
@@ -133,6 +141,7 @@ data CardanoEra era where
      ShelleyEra :: CardanoEra ShelleyEra
      AllegraEra :: CardanoEra AllegraEra
      MaryEra    :: CardanoEra MaryEra
+     AlonzoEra  :: CardanoEra AlonzoEra
 
 deriving instance Eq   (CardanoEra era)
 deriving instance Ord  (CardanoEra era)
@@ -143,6 +152,7 @@ instance TestEquality CardanoEra where
     testEquality ShelleyEra ShelleyEra = Just Refl
     testEquality AllegraEra AllegraEra = Just Refl
     testEquality MaryEra    MaryEra    = Just Refl
+    testEquality AlonzoEra  AlonzoEra  = Just Refl
     testEquality _          _          = Nothing
 
 
@@ -165,6 +175,8 @@ instance IsCardanoEra AllegraEra where
 instance IsCardanoEra MaryEra where
    cardanoEra      = MaryEra
 
+instance IsCardanoEra AlonzoEra where
+   cardanoEra      = AlonzoEra
 
 data AnyCardanoEra where
      AnyCardanoEra :: IsCardanoEra era  -- Provide class constraint
@@ -184,16 +196,18 @@ instance Enum AnyCardanoEra where
     toEnum 1 = AnyCardanoEra ShelleyEra
     toEnum 2 = AnyCardanoEra AllegraEra
     toEnum 3 = AnyCardanoEra MaryEra
+    toEnum 4 = AnyCardanoEra AlonzoEra
     toEnum _ = error "AnyCardanoEra.toEnum: bad argument"
 
     fromEnum (AnyCardanoEra ByronEra)   = 0
     fromEnum (AnyCardanoEra ShelleyEra) = 1
     fromEnum (AnyCardanoEra AllegraEra) = 2
     fromEnum (AnyCardanoEra MaryEra)    = 3
+    fromEnum (AnyCardanoEra AlonzoEra)  = 4
 
 instance Bounded AnyCardanoEra where
     minBound = AnyCardanoEra ByronEra
-    maxBound = AnyCardanoEra MaryEra
+    maxBound = AnyCardanoEra AlonzoEra
 
 -- | Like the 'AnyCardanoEra' constructor but does not demand a 'IsCardanoEra'
 -- class constraint.
@@ -203,6 +217,7 @@ anyCardanoEra ByronEra   = AnyCardanoEra ByronEra
 anyCardanoEra ShelleyEra = AnyCardanoEra ShelleyEra
 anyCardanoEra AllegraEra = AnyCardanoEra AllegraEra
 anyCardanoEra MaryEra    = AnyCardanoEra MaryEra
+anyCardanoEra AlonzoEra  = AnyCardanoEra AlonzoEra
 
 
 -- | This pairs up some era-dependent type with a 'CardanoEra' value that tells
@@ -283,6 +298,7 @@ data CardanoEraStyle era where
      ShelleyBasedEra :: IsShelleyBasedEra era -- Also provide class constraint
                      => ShelleyBasedEra era
                      -> CardanoEraStyle era
+     AlonzoBasedEra  :: CardanoEraStyle AlonzoEra
 
 deriving instance Eq   (CardanoEraStyle era)
 deriving instance Ord  (CardanoEraStyle era)
@@ -295,6 +311,7 @@ cardanoEraStyle ByronEra   = LegacyByronEra
 cardanoEraStyle ShelleyEra = ShelleyBasedEra ShelleyBasedEraShelley
 cardanoEraStyle AllegraEra = ShelleyBasedEra ShelleyBasedEraAllegra
 cardanoEraStyle MaryEra    = ShelleyBasedEra ShelleyBasedEraMary
+cardanoEraStyle AlonzoEra  = AlonzoBasedEra
 
 
 -- ----------------------------------------------------------------------------
