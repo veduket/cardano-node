@@ -30,7 +30,8 @@ let
       ;
     };
 
-  baseEnvConfig = pkgs.callPackage ./base-env.nix { inherit (pkgs.commonLib.cardanoLib) defaultLogConfig; inherit stateDir; };
+  baseEnvConfig = pkgs.callPackage ./base-env.nix
+    { inherit (pkgs.commonLib.cardanoLib) defaultLogConfig; inherit stateDir; };
   mkStartScript = envConfig: let
     systemdCompat.options = {
       systemd.services = lib.mkOption {};
@@ -44,6 +45,7 @@ let
           enable = true;
           inherit (envConfig) operationalCertificate kesKey vrfKey topology nodeConfig nodeConfigFile port dbPrefix socketPath;
           inherit stateDir;
+          systemdSocketActivation = true;
         };
       };
     in lib.evalModules {
@@ -130,7 +132,7 @@ let
     fi
     ${genesis.files}
     ${pkgs.python3Packages.supervisor}/bin/supervisord --config ${supervisorConfig} $@
-    while [ ! -S $CARDANO_NODE_SOCKET_PATH ]; do echo "Waiting 5 seconds for bft node to start"; sleep 5; done
+    while [ ! -S $CARDANO_NODE_SOCKET_PATH ]; do echo "Waiting 5 seconds for bft node to start ($CARDANO_NODE_SOCKET_PATH)"; sleep 5; done
     echo "Transfering genesis funds to pool owners, register pools and delegations"
     cardano-cli transaction submit --shelley-mode \
       --tx-file ${stateDir}/shelley/transfer-register-delegate-tx.tx \

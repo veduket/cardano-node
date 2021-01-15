@@ -261,7 +261,7 @@ in {
 
       systemdSocketActivation = mkOption {
         type = types.bool;
-        default = false;
+        default = true;
         description = ''Use systemd socket activation'';
       };
 

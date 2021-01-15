@@ -27,5 +27,6 @@ def adhoc_profiles:
         }
       }
     }
+    , genesis_future_offset: "30 seconds"
   }
 ];

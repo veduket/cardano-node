@@ -20,4 +20,5 @@ rec {
   };
   nodeConfig = networkConfig // defaultLogConfig;
   consensusProtocol = networkConfig.Protocol;
+  systemdSocketActivation = true;
 }
