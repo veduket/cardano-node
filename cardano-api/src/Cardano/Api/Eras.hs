@@ -1,7 +1,7 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE PatternSynonyms #-}
 
 
 -- | Cardano eras, sometimes we have to distinguish them.
@@ -31,6 +31,7 @@ module Cardano.Api.Eras
 
     -- ** Mapping to era types from the Shelley ledger library
   , ShelleyLedgerEra
+  , EraConversion(..)
 
     -- * Cardano eras, as Byron vs Shelley-based
   , CardanoEraStyle(..)
@@ -43,12 +44,12 @@ module Cardano.Api.Eras
 
 import           Prelude
 
-import           Data.Type.Equality (TestEquality(..), (:~:)(Refl))
+import           Data.Type.Equality ((:~:) (Refl), TestEquality (..))
 
 import           Cardano.Ledger.Era as Ledger (Crypto)
 
-import           Ouroboros.Consensus.Shelley.Eras as Ledger
-                   (StandardShelley, StandardAllegra, StandardMary, StandardCrypto)
+import           Ouroboros.Consensus.Shelley.Eras as Ledger (StandardAllegra, StandardCrypto,
+                     StandardMary, StandardShelley)
 
 import           Cardano.Api.HasTypeProxy
 
@@ -314,3 +315,8 @@ type family ShelleyLedgerEra era where
   ShelleyLedgerEra AllegraEra = Ledger.StandardAllegra
   ShelleyLedgerEra MaryEra    = Ledger.StandardMary
 
+data EraConversion era where
+  ShelleyEraConversion :: EraConversion ShelleyEra
+  AllegraEraConversion :: EraConversion AllegraEra
+  MaryEraConversion    :: EraConversion MaryEra
+--AlonzoEraConversion  :: EraConversion AlonzoEra

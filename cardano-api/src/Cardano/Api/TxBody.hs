@@ -1,3 +1,4 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE EmptyCase #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -76,13 +77,15 @@ module Cardano.Api.TxBody (
     certificatesSupportedInEra,
     updateProposalSupportedInEra,
 
-    -- * Internal conversion functions
+    -- * Internal conversion functions & types
     toShelleyTxId,
     toShelleyTxIn,
     toShelleyTxOut,
     fromShelleyTxId,
     fromShelleyTxIn,
+    EraConversion(..),
     fromShelleyTxOut,
+    fromTxOut,
 
     -- * Data family instances
     AsType(AsTxId, AsTxBody, AsByronTxBody, AsShelleyTxBody),
@@ -121,6 +124,7 @@ import qualified Cardano.Crypto.Hashing as Byron
 
 import qualified Cardano.Ledger.AuxiliaryData as Ledger (hashAuxiliaryData)
 import qualified Cardano.Ledger.Core as Ledger
+import qualified Cardano.Ledger.Core as Core
 import qualified Cardano.Ledger.Era as Ledger
 import qualified Cardano.Ledger.Shelley.Constraints as Ledger
 import qualified Cardano.Ledger.ShelleyMA.AuxiliaryData as Allegra
@@ -286,25 +290,28 @@ toShelleyTxOut (TxOut addr (TxOutAdaOnly AdaOnlyInAllegraEra value)) =
 toShelleyTxOut (TxOut addr (TxOutValue MultiAssetInMaryEra value)) =
     Shelley.TxOut (toShelleyAddr addr) (toMaryValue value)
 
+fromShelleyTxOut :: Shelley.TxOut StandardShelley -> TxOut ShelleyEra
+fromShelleyTxOut = fromTxOut ShelleyEraConversion
 
-fromShelleyTxOut :: forall era ledgerera.
-                   (ShelleyLedgerEra era ~ ledgerera,
-                    IsShelleyBasedEra era, Ledger.ShelleyBased ledgerera)
-                 => Shelley.TxOut ledgerera -> TxOut era
-fromShelleyTxOut (Shelley.TxOut addr value) =
-    case shelleyBasedEra :: ShelleyBasedEra era of
-      ShelleyBasedEraShelley -> TxOut (fromShelleyAddr addr)
-                                      (TxOutAdaOnly AdaOnlyInShelleyEra
+fromTxOut
+  :: ShelleyLedgerEra era ~ ledgerera
+  => EraConversion era
+  -> Core.TxOut ledgerera
+  -> TxOut era
+fromTxOut eraConversion ledgerTxOut =
+  case eraConversion of
+    ShelleyEraConversion -> let (Shelley.TxOut addr value) = ledgerTxOut
+                            in TxOut (fromShelleyAddr addr)
+                                     (TxOutAdaOnly AdaOnlyInShelleyEra
                                                     (fromShelleyLovelace value))
-
-      ShelleyBasedEraAllegra -> TxOut (fromShelleyAddr addr)
+    AllegraEraConversion -> let (Shelley.TxOut addr value) = ledgerTxOut
+                            in TxOut (fromShelleyAddr addr)
                                       (TxOutAdaOnly AdaOnlyInAllegraEra
                                                     (fromShelleyLovelace value))
-
-      ShelleyBasedEraMary    -> TxOut (fromShelleyAddr addr)
+    MaryEraConversion    -> let (Shelley.TxOut addr value) = ledgerTxOut
+                            in TxOut (fromShelleyAddr addr)
                                       (TxOutValue MultiAssetInMaryEra
-                                                  (fromMaryValue value))
-
+                                                    (fromMaryValue value))
 
 -- ----------------------------------------------------------------------------
 -- Era-dependent transaction body features
