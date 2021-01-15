@@ -75,8 +75,8 @@ import           Ouroboros.Network.BlockFetch.Decision (FetchDecision, FetchDecl
 import qualified Ouroboros.Network.NodeToClient as NtC
 import qualified Ouroboros.Network.NodeToNode as NtN
 import           Ouroboros.Network.Point (fromWithOrigin, withOrigin)
-import           Ouroboros.Network.Subscription
 import           Ouroboros.Network.Protocol.LocalStateQuery.Type (ShowQuery)
+import           Ouroboros.Network.Subscription
 
 import qualified Ouroboros.Consensus.Storage.ChainDB as ChainDB
 import qualified Ouroboros.Consensus.Storage.LedgerDB.OnDisk as LedgerDB
@@ -326,6 +326,7 @@ mkTracers TracingOff _ _ =
       , NodeToNode.tBlockFetchTracer = nullTracer
       , NodeToNode.tBlockFetchSerialisedTracer = nullTracer
       , NodeToNode.tTxSubmissionTracer = nullTracer
+      , NodeToNode.tTxSubmission2Tracer = nullTracer
       }
     , ipSubscriptionTracer = nullTracer
     , dnsSubscriptionTracer= nullTracer
@@ -857,6 +858,7 @@ nodeToNodeTracers' trSel verb tr =
   , NodeToNode.tBlockFetchTracer = tracerOnOff (traceBlockFetchProtocol trSel) verb "BlockFetchProtocol" tr
   , NodeToNode.tBlockFetchSerialisedTracer = showOnOff (traceBlockFetchProtocolSerialised trSel) "BlockFetchProtocolSerialised" tr
   , NodeToNode.tTxSubmissionTracer = tracerOnOff (traceTxSubmissionProtocol trSel) verb "TxSubmissionProtocol" tr
+  , NodeToNode.tTxSubmission2Tracer = nullTracer --TODO: Implement appropriate tracer
   }
 
 teeTraceBlockFetchDecision
