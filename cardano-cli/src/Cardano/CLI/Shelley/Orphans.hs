@@ -107,7 +107,7 @@ deriving newtype instance ToJSON BlockNo
 deriving newtype instance ToJSON (TxId era)
 
 deriving newtype instance ( ShelleyBasedEra era
-                          , ToJSON (Core.Value era)
+                          , ToJSON (Core.TxOut era)
                           , Ledger.Crypto era ~ StandardCrypto
                           ) => ToJSON (UTxO era)
 
@@ -124,7 +124,6 @@ deriving newtype instance ToJSON (Ledger.Stake StandardCrypto)
 
 deriving anyclass instance ToJSON (Ledger.GenDelegs StandardCrypto)
 deriving anyclass instance ToJSON (Ledger.IndividualPoolStake StandardCrypto)
-deriving anyclass instance ToJSON (Ledger.BlocksMade StandardCrypto)
 
 deriving anyclass instance ToJSON (Ledger.ProposedPPUpdates StandardShelley)
 deriving anyclass instance ToJSON (Ledger.PPUPState StandardShelley)

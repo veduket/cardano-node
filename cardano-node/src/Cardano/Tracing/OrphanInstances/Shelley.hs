@@ -225,10 +225,10 @@ instance Core.Crypto crypto => ToObject (ChainTransitionError crypto) where
              ]
 
 instance ( ShelleyBasedEra era
-         , ToObject (PredicateFailure (UTXO era))
-         , ToObject (PredicateFailure (UTXOW era))
+         , ToObject (PredicateFailure (Core.EraRule "UTXOW" era))
          , ToObject (PredicateFailure (Core.EraRule "BBODY" era))
          , ToObject (PredicateFailure (Core.EraRule "TICK" era))
+         , ToObject (PredicateFailure (Core.EraRule "TICKN" era))
          ) => ToObject (ChainPredicateFailure era) where
   toObject _verb (HeaderSizeTooLargeCHAIN hdrSz maxHdrSz) =
     mkObject [ "kind" .= String "HeaderSizeTooLarge"
@@ -253,12 +253,9 @@ instance ( ShelleyBasedEra era
                       \protocol version."
   toObject verb (BbodyFailure f) = toObject verb f
   toObject verb (TickFailure  f) = toObject verb f
+  toObject verb (TicknFailure  f) = toObject verb f
   toObject verb (PrtclFailure f) = toObject verb f
   toObject verb (PrtclSeqFailure f) = toObject verb f
-
--- TODO: Left off here
---instance ToObject (PredicateFailure (Core.EraRule "TICK" era)) where
---  toObject _ _ = error ""
 
 instance ToObject (PrtlSeqFailure crypto) where
   toObject _verb (WrongSlotIntervalPrtclSeq (SlotNo lastSlot) (SlotNo currSlot)) =
