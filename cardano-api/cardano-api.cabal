@@ -23,6 +23,7 @@ library
                         -- is fully integrated, or re-exported via the export
                         -- modules above
                         Cardano.Api.Crypto.Ed25519Bip32
+                        Cardano.Api.Eras
                         Cardano.Api.LocalChainSync
                         Cardano.Api.Modes
                         Cardano.Api.Protocol
@@ -31,6 +32,7 @@ library
                         Cardano.Api.Protocol.Cardano
                         Cardano.Api.Protocol.Shelley
                         Cardano.Api.Protocol.Types
+                        Cardano.Api.Query
                         Cardano.Api.Shelley.Genesis
                         Cardano.Api.TxInMode
                         Cardano.Api.TxSubmit
@@ -49,7 +51,6 @@ library
                         Cardano.Api.Address
                         Cardano.Api.Block
                         Cardano.Api.Certificate
-                        Cardano.Api.Eras
                         Cardano.Api.Error
                         Cardano.Api.Fees
                         Cardano.Api.Hash
@@ -62,7 +63,7 @@ library
                         Cardano.Api.NetworkId
                         Cardano.Api.OperationalCertificate
 -- TODO: move here      Cardano.Api.ProtocolParameters
-                        Cardano.Api.Query
+-- TODO: move here      Cardano.Api.Query
                         Cardano.Api.Script
                         Cardano.Api.SerialiseBech32
                         Cardano.Api.SerialiseCBOR
